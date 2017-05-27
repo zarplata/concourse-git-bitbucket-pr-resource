@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# vim: set ft=sh
+
+set -eu -o pipefail
+
+exec 3>&1
+exec 1>&2
+
+cd "${1}"
+
+payload=$(mktemp /tmp/resource.XXXXXX)
+cat > "${payload}" <&0
+
+# source
+base_url=`jq -r '.source.base_url // ""' < ${payload}`
+username=`jq -r '.source.username // ""' < ${payload}`
+password=`jq -r '.source.password // ""' < ${payload}`
+project=`jq -r '.source.project // ""' < ${payload}`
+repository=`jq -r '.source.repository // ""' < ${payload}`
+git=`jq -r '.source.git // ""' < ${payload}`
+# version
+version=`jq -r '.version' < ${payload}`
+version_id=`jq -r '.version.id' < ${payload}`
+
+if [[ ! ${base_url} ]]; then
+    echo "error: source.base_url can't be empty"
+    exit 1
+fi
+if [[ ! ${project} ]]; then
+    echo "error: source.project can't be empty"
+    exit 1
+fi
+if [[ ! ${repository} ]]; then
+    echo "error: source.repository can't be empty"
+    exit 1
+fi
+if [[ ! ${git} ]]; then
+    echo "error: source.git can't be empty"
+    exit 1
+fi
+
+uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
+pr=`curl -s --fail -u ${username}:${password} $uri`
+
+branch=`echo ${pr} | jq '.fromRef.id' | sed 's/refs\/heads\///'`
+git_payload=`echo ${git} | jq --arg branch "${branch}" --argjson version "${version}" '
+    {source: (. * {branch: $branch})} + {version: {ref: $version.commit}}
+'` 
+
+source=`echo $git_payload | /opt/git-resource/in "${@%/}/repo"`
+
+jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+        id: $pr.id,
+        author: {
+            name: $pr.author.user.name,
+            email: $pr.author.user.emailAddress,
+            fullname: $pr.author.user.displayName,
+        },
+        commit: $version.commit,
+        feature_branch: $pr.fromRef.id,
+        upstream_branch: $pr.toRef.id
+    }' > pull-request
+
+jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+        version: $version, 
+        metadata: [
+            {name: "url", value: $pr.links.self[0].href},
+            {name: "author", value: $pr.author.user.displayName}, 
+            {name: "commit", value: $version.commit},
+            {name: "feature-branch", value: $pr.fromRef.id},
+            {name: "upstream-branch", value: $pr.toRef.id}
+        ]
+    }' >&3

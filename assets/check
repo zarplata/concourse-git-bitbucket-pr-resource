@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# vim: set ft=sh
+
+set -eu -o pipefail
+
+exec 3>&1
+exec 1>&2
+
+cd "${1}"
+
+payload=$(mktemp /tmp/resource.XXXXXX)
+cat > ${payload} <&0
+
+# source
+base_url=`jq -r '.source.base_url // ""' < ${payload}`
+username=`jq -r '.source.username // ""' < ${payload}`
+password=`jq -r '.source.password // ""' < ${payload}`
+project=`jq -r '.source.project // ""' < ${payload}`
+repository=`jq -r '.source.repository // ""' < ${payload}`
+limit=`jq -r '.source.limit // 100' < ${payload}`
+# version
+version_updated_at=`jq -r '.version.updated_at // 0' < ${payload}`
+
+if [[ ! ${base_url} ]]; then
+    echo "error: source.base_url can't be empty"
+    exit 1
+fi
+if [[ ! ${project} ]]; then
+    echo "error: source.project can't be empty"
+    exit 1
+fi
+if [[ ! ${repository} ]]; then
+    echo "error: source.repository can't be empty"
+    exit 1
+fi
+
+uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open"
+
+curl -s --fail -u ${username}:${password} $uri | jq -r \
+    '.values
+    | map({
+          id: .id|tostring, 
+          commit: .fromRef.latestCommit, 
+          updated_at: .updatedDate|tostring
+      }) 
+    | map(select(.updated_at >= '$version_updated_at'))
+    | sort_by(.updated_at)' >&3
+

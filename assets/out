@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# vim: set ft=sh
+
+echo "error: put for this resource in unsupported" &>2
+exit 1
