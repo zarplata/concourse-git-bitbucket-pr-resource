@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim: set ft=sh
 
-set -eu -o pipefail
+set -e -o pipefail
 
 exec 3>&1
 exec 1>&2
