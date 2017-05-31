@@ -43,7 +43,7 @@ uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-reque
 pr=`curl -s --fail -u ${username}:${password} $uri`
 
 branch=`echo ${pr} | jq '.fromRef.id' | sed 's/refs\/heads\///'`
-git_payload=`echo ${git} | jq --arg branch "${branch}" --argjson version "${version}" '
+git_payload=`echo ${git} | jq --argjson branch "${branch}" --argjson version "${version}" '
     {source: (. * {branch: $branch})} + {version: {ref: $version.commit}}
 '` 
 
