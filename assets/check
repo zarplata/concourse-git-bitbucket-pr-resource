@@ -39,9 +39,10 @@ uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-reque
 curl -s --fail -u ${username}:${password} $uri | jq -r \
     '.values
     | map({
-          id: .id|tostring, 
+          id: .id | tostring, 
+          branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
           commit: .fromRef.latestCommit, 
-          updated_at: .updatedDate|tostring
+          updated_at: .updatedDate | tostring
       }) 
     | map(select(.updated_at >= '$version_updated_at'))
     | sort_by(.updated_at)' >&3

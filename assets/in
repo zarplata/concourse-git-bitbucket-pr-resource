@@ -21,6 +21,7 @@ git=`jq -r '.source.git // ""' < ${payload}`
 # version
 version=`jq -r '.version' < ${payload}`
 version_id=`jq -r '.version.id' < ${payload}`
+version_branch=`jq -r '.version.branch' < ${payload}`
 
 if [[ ! ${base_url} ]]; then
     echo "error: source.base_url can't be empty"
@@ -42,9 +43,8 @@ fi
 uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
 pr=`curl -s --fail -u ${username}:${password} $uri`
 
-branch=`echo ${pr} | jq '.fromRef.id' | sed 's/refs\/heads\///'`
-git_payload=`echo ${git} | jq --argjson branch "${branch}" --argjson version "${version}" '
-    {source: (. * {branch: $branch})} + {version: {ref: $version.commit}}
+git_payload=`echo ${git} | jq --argjson version "${version}" '
+    {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}}
 '` 
 
 resource_path="${@%/}"
@@ -60,7 +60,7 @@ jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             fullname: $pr.author.user.displayName,
         },
         commit: $version.commit,
-        feature_branch: $pr.fromRef.id,
+        feature_branch: $version.branch,
         upstream_branch: $pr.toRef.id
     }' > pull-request-info
 
@@ -70,7 +70,7 @@ jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             {name: "url", value: $pr.links.self[0].href},
             {name: "author", value: $pr.author.user.displayName}, 
             {name: "commit", value: $version.commit},
-            {name: "feature-branch", value: $pr.fromRef.id},
+            {name: "feature-branch", value: $version.branch},
             {name: "upstream-branch", value: $pr.toRef.id}
         ]
     }' >&3
