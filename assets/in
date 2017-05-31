@@ -47,7 +47,10 @@ git_payload=`echo ${git} | jq --argjson branch "${branch}" --argjson version "${
     {source: (. * {branch: $branch})} + {version: {ref: $version.commit}}
 '` 
 
-source=`echo $git_payload | /opt/git-resource/in "${@%/}/repo"`
+resource_path="${@%/}"
+echo $git_payload | /opt/git-resource/in ${resource_path}
+# exclude pull-request-info from git index
+echo "pull-request-info" > ${resource_path}/.git/info/exclude
 
 jq -n --argjson version "${version}" --argjson pr "${pr}" '{
         id: $pr.id,
@@ -59,7 +62,7 @@ jq -n --argjson version "${version}" --argjson pr "${pr}" '{
         commit: $version.commit,
         feature_branch: $pr.fromRef.id,
         upstream_branch: $pr.toRef.id
-    }' > pull-request
+    }' > pull-request-info
 
 jq -n --argjson version "${version}" --argjson pr "${pr}" '{
         version: $version, 
