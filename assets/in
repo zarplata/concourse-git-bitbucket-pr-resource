@@ -48,7 +48,7 @@ git_payload=`echo ${git} | jq --argjson branch "${branch}" --argjson version "${
 '` 
 
 resource_path="${@%/}"
-echo $git_payload | /opt/git-resource/in ${resource_path}
+echo $git_payload | /opt/git-resource/in ${resource_path} 1>/dev/null
 # exclude pull-request-info from git index
 echo "pull-request-info" > ${resource_path}/.git/info/exclude
 
