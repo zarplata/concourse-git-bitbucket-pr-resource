@@ -34,8 +34,6 @@ from the original resource is ignored.
 
 ### Example
 
-Resource configuration for a repo with a bunch of branches named `wip-*`:
-
 ``` yaml
 resources:
 - name: my-repo-with-pull-requests
