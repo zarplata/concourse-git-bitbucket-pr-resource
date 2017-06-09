@@ -61,7 +61,8 @@ jq -n --argjson version "${version}" --argjson pr "${pr}" '{
         },
         commit: $version.commit,
         feature_branch: $version.branch,
-        upstream_branch: $pr.toRef.id
+        upstream_branch: $pr.toRef.id,
+        url: $pr.links.self[0].href
     }' > pull-request-info
 
 jq -n --argjson version "${version}" --argjson pr "${pr}" '{
