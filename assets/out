@@ -1,5 +1,51 @@
 #!/usr/bin/env bash
 # vim: set ft=sh
 
-echo "error: put for this resource in unsupported" &>2
-exit 1
+set -e -o pipefail
+
+exec 3>&1
+exec 1>&2
+
+cd "${1}"
+
+payload=$(mktemp /tmp/resource.XXXXXX)
+cat > "${payload}" <&0
+
+# source
+base_url=`jq -r '.source.base_url // ""' < ${payload}`
+username=`jq -r '.source.username // ""' < ${payload}`
+password=`jq -r '.source.password // ""' < ${payload}`
+# params
+build=`jq '.params' < ${payload}`
+repository=`jq -r '.params.repository' < ${payload}`
+
+if [[ ! ${base_url} ]]; then
+    echo "error: source.base_url can't be empty"
+    exit 1
+fi
+
+cd ${repository}
+
+pr=`cat pull-request-info`
+commit=`echo ${pr} | jq -r '.commit'`
+url="${base_url}/rest/build-status/1.0/commits/${commit}"
+build_url="${ATC_EXTERNAL_URL}/builds/${BUILD_ID}"
+
+json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
+    state: .state,
+    key: .key,
+    name: (.key + "-" + $id),
+    url: $build_url,
+    description: .description|tostring
+}'`
+
+curl -s --fail -u ${username}:${password} -H "Content-Type: application/json" -XPOST ${url} -d "${json}"
+
+jq -n --argjson pr "${pr}" --argjson pr "${pr}" '{
+    version: {
+        id: $pr.id|tostring,
+        branch: $pr.feature_branch,
+        commit: $pr.commit,
+        updated_at: $pr.updated_at|tostring
+    }
+}' >&3
