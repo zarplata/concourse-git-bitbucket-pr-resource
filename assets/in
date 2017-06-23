@@ -12,6 +12,7 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > "${payload}" <&0
 
 # source
+bitbucket_type=`jq -r '.source.bitbucket_type // "server"' < ${payload}`
 base_url=`jq -r '.source.base_url // ""' < ${payload}`
 username=`jq -r '.source.username // ""' < ${payload}`
 password=`jq -r '.source.password // ""' < ${payload}`
@@ -40,7 +41,11 @@ if [[ ! ${git} ]]; then
     exit 1
 fi
 
-uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
+if [[ "$bitbucket_type" == "server" ]]; then
+    uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
+elif [[ "$bitbucket_type" == "cloud" ]]; then
+    uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
+fi
 pr=`curl -s --fail -u ${username}:${password} $uri`
 
 git_payload=`echo ${git} | jq --argjson version "${version}" '
@@ -52,28 +57,56 @@ echo $git_payload | /opt/git-resource/in ${resource_path} 1>/dev/null
 # exclude pull-request-info from git index
 echo "pull-request-info" > ${resource_path}/.git/info/exclude
 
-jq -n --argjson version "${version}" --argjson pr "${pr}" '{
-        id: $pr.id,
-        author: {
-            name: $pr.author.user.name,
-            email: $pr.author.user.emailAddress,
-            fullname: $pr.author.user.displayName,
-        },
-        commit: $version.commit,
-        feature_branch: $version.branch,
-        title: $pr.title,
-        upstream_branch: $pr.toRef.id,
-        url: $pr.links.self[0].href,
-        updated_at: $version.updated_at
-    }' > pull-request-info
+# Bitbucket Cloud and (self-hosted) Server APIs are a bit different
+if [[ "$bitbucket_type" == "server" ]]; then
+    jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+            id: $pr.id,
+            author: {
+                name: $pr.author.user.name,
+                email: $pr.author.user.emailAddress,
+                fullname: $pr.author.user.displayName,
+            },
+            commit: $version.commit,
+            feature_branch: $version.branch,
+            title: $pr.title,
+            upstream_branch: $pr.toRef.id,
+            url: $pr.links.self[0].href,
+            updated_at: $version.updated_at
+        }' > pull-request-info
 
-jq -n --argjson version "${version}" --argjson pr "${pr}" '{
-        version: $version, 
-        metadata: [
-            {name: "url", value: $pr.links.self[0].href},
-            {name: "author", value: $pr.author.user.displayName}, 
-            {name: "commit", value: $version.commit},
-            {name: "feature-branch", value: $version.branch},
-            {name: "upstream-branch", value: $pr.toRef.id}
-        ]
-    }' >&3
+    jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+            version: $version, 
+            metadata: [
+                {name: "url", value: $pr.links.self[0].href},
+                {name: "author", value: $pr.author.user.displayName}, 
+                {name: "commit", value: $version.commit},
+                {name: "feature-branch", value: $version.branch},
+                {name: "upstream-branch", value: $pr.toRef.id}
+            ]
+        }' >&3
+elif [[ "$bitbucket_type" == "cloud" ]]; then
+    jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+            id: $pr.id,
+            author: {
+                name: $pr.author.username,
+                fullname: $pr.author.display_name,
+            },
+            commit: $version.commit,
+            feature_branch: $version.branch,
+            title: $pr.title,
+            upstream_branch: $pr.destination.branch.name,
+            url: $pr.links.html.href,
+            updated_at: $version.updated_at
+        }' > pull-request-info
+
+    jq -n --argjson version "${version}" --argjson pr "${pr}" '{
+            version: $version, 
+            metadata: [
+                {name: "url", value: $pr.links.html.href},
+                {name: "author", value: $pr.author.display_name}, 
+                {name: "commit", value: $version.commit},
+                {name: "feature-branch", value: $version.branch},
+                {name: "upstream-branch", value: $pr.destination.branch.name}
+            ]
+        }' >&3
+fi        
