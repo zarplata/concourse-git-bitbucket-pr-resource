@@ -12,6 +12,7 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > ${payload} <&0
 
 # source
+bitbucket_type=`jq -r '.source.bitbucket_type // "server"' < ${payload}`
 base_url=`jq -r '.source.base_url // ""' < ${payload}`
 username=`jq -r '.source.username // ""' < ${payload}`
 password=`jq -r '.source.password // ""' < ${payload}`
@@ -34,16 +35,32 @@ if [[ ! ${repository} ]]; then
     exit 1
 fi
 
-uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open"
+# Bitbucket Cloud and (self-hosted) Server APIs are a bit different
+if [[ "$bitbucket_type" == "server" ]]; then
+    uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open"
 
-curl -s --fail -u ${username}:${password} $uri | jq -r \
-    '.values
-    | map({
-          id: .id | tostring, 
-          branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
-          commit: .fromRef.latestCommit, 
-          updated_at: .updatedDate | tostring
-      }) 
-    | map(select(.updated_at >= '$version_updated_at'))
-    | sort_by(.updated_at)' >&3
+    curl -s --fail -u ${username}:${password} $uri | jq -r \
+        '.values
+        | map({
+            id: .id | tostring, 
+            branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
+            commit: .fromRef.latestCommit, 
+            updated_at: .updatedDate | tostring
+        }) 
+        | map(select(.updated_at >= '$version_updated_at'))
+        | sort_by(.updated_at)' >&3
+elif [[ "$bitbucket_type" == "cloud" ]]; then
+    uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=open"
+
+    curl -s --fail -u ${username}:${password} $uri | jq -r \
+        '.values
+        | map({
+            id: .id | tostring, 
+            branch: .source.branch.name | tostring,
+            commit: .source.commit.hash, 
+            updated_at: .updated_on | tostring
+        }) 
+        | map(select(.updated_at >= "$version_updated_at"))
+        | sort_by(.updated_at)' >&3
+fi
 
