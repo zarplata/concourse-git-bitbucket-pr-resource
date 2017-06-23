@@ -12,12 +12,14 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > "${payload}" <&0
 
 # source
+bitbucket_type=`jq -r '.source.bitbucket_type // "server"' < ${payload}`
 base_url=`jq -r '.source.base_url // ""' < ${payload}`
 username=`jq -r '.source.username // ""' < ${payload}`
 password=`jq -r '.source.password // ""' < ${payload}`
+project=`jq -r '.source.project // ""' < ${payload}`
+repository=`jq -r '.source.repository // ""' < ${payload}`
 # params
 build=`jq '.params' < ${payload}`
-repository=`jq -r '.params.repository' < ${payload}`
 
 if [[ ! ${base_url} ]]; then
     echo "error: source.base_url can't be empty"
@@ -28,16 +30,28 @@ cd ${repository}
 
 pr=`cat pull-request-info`
 commit=`echo ${pr} | jq -r '.commit'`
-url="${base_url}/rest/build-status/1.0/commits/${commit}"
 build_url="${ATC_EXTERNAL_URL}/builds/${BUILD_ID}"
+if [[ "$bitbucket_type" == "server" ]]; then
+    url="${base_url}/rest/build-status/1.0/commits/${commit}"
 
-json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
-    state: .state,
-    key: .key,
-    name: (.key + "-" + $id),
-    url: $build_url,
-    description: .description|tostring
-}'`
+    json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
+        state: .state,
+        key: .key,
+        name: (.key + "-" + $id),
+        url: $build_url,
+        description: .description|tostring
+    }'`    
+elif [[ "$bitbucket_type" == "cloud" ]]; then
+    url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
+
+    json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
+        state: .state,
+        key: .key,
+        name: .name,
+        url: .url,
+        description: .description|tostring
+    }'`    
+fi 
 
 curl -s --fail -u ${username}:${password} -H "Content-Type: application/json" -XPOST ${url} -d "${json}"
 
