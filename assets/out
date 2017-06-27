@@ -48,14 +48,22 @@ if [[ "$bitbucket_type" == "server" ]]; then
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
 
-    json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
+
+    # expand variables like $BUILD_ID before passing into JSON
+    name=$(echo "$build"| jq -r '.name')
+    name=$(eval echo $name)
+    desc=$(echo "$build"| jq -r '.description')
+    desc=$(eval echo $desc)
+    build_url=$(echo "$build"| jq -r '.url')
+    build_url=$(eval echo $build_url)
+    json=`echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" --arg name "$name" --arg desc "$desc" '{
         state: .state,
-        key: .key,
-        name: .name,
-        url: .url,
-        description: .description|tostring
-    }'`    
-fi 
+        key: ($name + "-" + $id),
+        name: $name,
+        url: $build_url,
+        description: $desc
+    }'` 
+fi
 
 curl -s --fail -u ${username}:${password} -H "Content-Type: application/json" -XPOST ${url} -d "${json}"
 
