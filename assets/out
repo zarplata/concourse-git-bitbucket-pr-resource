@@ -18,6 +18,10 @@ username=`jq -r '.source.username // ""' < ${payload}`
 password=`jq -r '.source.password // ""' < ${payload}`
 project=`jq -r '.source.project // ""' < ${payload}`
 repository=`jq -r '.source.repository // ""' < ${payload}`
+dir=`jq -r '.source.dir // ""' < ${payload}`
+if [[ ! ${dir} ]]; then
+    dir=$repository
+fi
 # params
 build=`jq '.params' < ${payload}`
 
@@ -26,7 +30,7 @@ if [[ ! ${base_url} ]]; then
     exit 1
 fi
 
-cd ${repository}
+cd ${dir}
 
 pr=`cat pull-request-info`
 commit=`echo ${pr} | jq -r '.commit'`
@@ -59,7 +63,6 @@ jq -n --argjson pr "${pr}" --argjson pr "${pr}" '{
     version: {
         id: $pr.id|tostring,
         branch: $pr.feature_branch,
-        commit: $pr.commit,
-        updated_at: $pr.updated_at|tostring
+        commit: $pr.commit
     }
 }' >&3
