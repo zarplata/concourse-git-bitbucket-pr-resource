@@ -31,6 +31,8 @@ For example: `http://bitbucket.local`
 * `git`: *Required*. configuration is based on the [Git
 resource](https://github.com/concourse/git-resource). The `branch` configuration
 from the original resource is ignored.
+* `bitbucket_type`: *Optional*. `cloud` for BitBucket Cloud or `server` for a self-hosted BitBucket Server. `default: server`
+* `dir`: *Optional*. set to name of the resource if resource name is different than repository name
 
 ### Example
 
