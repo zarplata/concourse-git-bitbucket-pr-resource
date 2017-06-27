@@ -96,17 +96,19 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
             title: $pr.title,
             upstream_branch: $pr.destination.branch.name,
             url: $pr.links.html.href,
-            updated_at: $version.updated_at
+            updated_at: $pr.created_on
         }' > pull-request-info
 
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             version: $version, 
             metadata: [
+                {name: "title", value: $pr.title},
                 {name: "url", value: $pr.links.html.href},
                 {name: "author", value: $pr.author.display_name}, 
                 {name: "commit", value: $version.commit},
                 {name: "feature-branch", value: $version.branch},
-                {name: "upstream-branch", value: $pr.destination.branch.name}
+                {name: "upstream-branch", value: $pr.destination.branch.name},
+                {name: "pullrequest updated", value: $pr.updated_on}
             ]
         }' >&3
 fi        
