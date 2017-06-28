@@ -49,6 +49,31 @@ resources:
     git:
       uri: https://github.com/zarplata/concourse-git-bitbucket-pr-resource
       private_key: {{git-repo-key}}
+
+jobs:
+  - name: my build
+    plan:    
+      - get: my-repo-with-pull-requests
+        trigger: true
+        version: every
+      - task: unit test
+          ...
+          inputs:          
+            - name: my-repo-with-pull-requests
+          run:
+          ...
+        on_failure:
+          put: my-repo-with-pull-requests
+          params:
+            state: FAILED
+            name: "unit test"
+            url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
+        on_success:
+          put: my-repo-with-pull-requests
+          params:
+            state: SUCCESSFUL
+            name: "unit test"
+            url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"      
 ```
 
 ## Behavior
