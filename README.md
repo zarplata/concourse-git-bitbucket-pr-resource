@@ -94,6 +94,6 @@ commit on the branch.
 All `params` and `source` configuration of the original resource will be
 respected.
 
-### `out`: No-op.
-
-*Not implemented.*
+### `out`: Update build task status.
+  		  
+This updates the build status of the task.
