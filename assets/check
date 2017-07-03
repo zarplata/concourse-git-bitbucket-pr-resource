@@ -70,6 +70,11 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         prs+="+ [{id:\"$id\", branch: \"$branch\", commit:\"$commit\", updated_at:\"$date\"}]"
     done < <(jq -c '.[]' "${response}")
 
+    if [[ "$prs" == "[]" ]]; then
+        jq -n "$prs" >&3
+        exit
+    fi
+
     # take the list of PRs | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
     jq -n "[ $prs | sort_by(.updated_at) | map(del(.updated_at)) | .[-1] ]" >&3
 fi
