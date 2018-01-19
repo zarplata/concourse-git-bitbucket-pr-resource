@@ -35,11 +35,12 @@ if [[ ! ${repository} ]]; then
     exit 1
 fi
 
+
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open"
 
-    curl -s --fail -u ${username}:${password} $uri | jq -r \
+    curl -sS --fail -u ${username}:${password} $uri | jq -r \
         '.values
         | map({
             id: .id | tostring, 
@@ -54,7 +55,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)
-    curl -s --fail -u "${username}:${password}" $uri | jq -r '.values' > "${response}"
+    curl -sS --fail -u "${username}:${password}" $uri | jq -r '.values' > "${response}"
 
     prs="[]"
     while read -r pullrequest; do
