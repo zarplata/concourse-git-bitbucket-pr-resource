@@ -16,7 +16,8 @@ Add the following `resource_types` entry to your pipeline:
 resource_types:
 - name: git-bitbucket-pr
   type: docker-image
-  source: {repository: zarplata/concourse-git-bitbucket-pr}
+  source:
+    repository: zarplata/concourse-git-bitbucket-pr-resource
 ```
 
 ## Source Configuration
