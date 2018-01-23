@@ -42,7 +42,7 @@ resources:
 - name: my-repo-with-pull-requests
   type: git-bitbucket-pr
   source:
-    url: http://bitbucket.local
+    base_url: http://bitbucket.local
     username: some-username
     password: some-password
     project: zarplata
