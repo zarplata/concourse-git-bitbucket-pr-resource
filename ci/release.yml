@@ -12,8 +12,8 @@ resources:
   type: docker-image
   source:
     repository: zarplata/concourse-git-bitbucket-pr-resource
-    username: {{docker-hub-username}}
-    password: {{docker-hub-password}}
+    username: ((docker-hub.username))
+    password: ((docker-hub.password))
     tag: latest
 
 jobs:
