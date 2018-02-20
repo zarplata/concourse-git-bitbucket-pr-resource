@@ -42,7 +42,7 @@ if [[ ! ${git} ]]; then
 fi
 
 if [[ "$bitbucket_type" == "server" ]]; then
-    uri="{$base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
+    uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
