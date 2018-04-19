@@ -52,7 +52,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
 fi
 
-curl -s -u ${username}:${password} -H "Content-Type: application/json" -XPOST ${url} -d "${json}"
+curl -sS --fail -u ${username}:${password} -H "Content-Type: application/json" -XPOST ${url} -d "${json}"
 
 jq -n --argjson pr "${pr}" --argjson pr "${pr}" '{
     version: {
