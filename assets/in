@@ -61,6 +61,7 @@ echo "pull-request-info" > ${resource_path}/.git/info/exclude
 if [[ "$bitbucket_type" == "server" ]]; then
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             id: $pr.id,
+            description: $pr.description,
             author: {
                 name: $pr.author.user.name,
                 email: $pr.author.user.emailAddress,
@@ -87,6 +88,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             id: $pr.id,
+            description: $pr.description,
             author: {
                 name: $pr.author.username,
                 fullname: $pr.author.display_name,
