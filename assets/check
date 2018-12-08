@@ -19,6 +19,7 @@ password=`jq -r '.source.password // ""' < ${payload}`
 project=`jq -r '.source.project // ""' < ${payload}`
 repository=`jq -r '.source.repository // ""' < ${payload}`
 limit=`jq -r '.source.limit // 100' < ${payload}`
+source_branch=`jq -r '.source.branch // ""' < ${payload}`
 # version
 version_updated_at=`jq -r '.version.updated_at // 0' < ${payload}`
 
@@ -38,7 +39,8 @@ fi
 
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
-    uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open"
+    [[ "${source_branch}" ]] && branch_param="&at=refs/heads/${source_branch}"
+    uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
     curl -sS --fail -u ${username}:${password} $uri | jq -r \
         '.values
@@ -62,6 +64,9 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     prs="[]"
     while read -r pullrequest; do
         branch=$(echo "$pullrequest" | jq -r '.source.branch.name')
+        if [[ "${source_branch}" ]]; then
+            [[ "${branch}" = "${source_branch}" ]] || continue
+        fi
         id=$(echo "$pullrequest" | jq -r '.id')
         title=$(echo "$pullrequest" | jq -r '.title')
         commit=$(echo "$pullrequest" | jq -r '.source.commit.hash')
