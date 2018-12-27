@@ -43,11 +43,13 @@ if [[ "$bitbucket_type" == "server" ]]; then
     curl -sS --fail -u ${username}:${password} $uri | jq -r \
         '.values
         | map({
-            id: .id | tostring, 
+            id: .id | tostring,
+            title: .title | tostring,
             branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
             commit: .fromRef.latestCommit, 
             updated_at: .updatedDate | tostring
-        }) 
+        })
+        | map(select(if .title | test("wip"; "i") then false else true end))
         | map(select(.updated_at >= '$version_updated_at'))
         | sort_by(.updated_at)' >&3
 elif [[ "$bitbucket_type" == "cloud" ]]; then
@@ -61,6 +63,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     while read -r pullrequest; do
         branch=$(echo "$pullrequest" | jq -r '.source.branch.name')
         id=$(echo "$pullrequest" | jq -r '.id')
+        title=$(echo "$pullrequest" | jq -r '.title')
         commit=$(echo "$pullrequest" | jq -r '.source.commit.hash')
         commit_url=$(echo "$pullrequest" | jq -r '.source.commit.links.self.href')
 
@@ -68,7 +71,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         # the updated_on field in the PR also changes when comment added etc
         date=$(curl -s --fail -u "${username}:${password}" $commit_url | jq -r '.date')        
         
-        prs+="+ [{id:\"$id\", branch: \"$branch\", commit:\"$commit\", updated_at:\"$date\"}]"
+        prs+="+ [{id:\"$id\", title: \"$title\", branch: \"$branch\", commit:\"$commit\", updated_at:\"$date\"}]"
     done < <(jq -c '.[]' "${response}")
 
     if [[ "$prs" == "[]" ]]; then
@@ -76,7 +79,11 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         exit
     fi
 
-    # take the list of PRs | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
-    jq -n "[ $prs | sort_by(.updated_at) | map(del(.updated_at)) | .[-1] ]" >&3
+    # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
+    jq -n "[ $prs
+        | map(select(if .title | test('wip'; 'i') then false else true end))
+        | sort_by(.updated_at)
+        | map(del(.updated_at))
+        | .[-1] ]" >&3
 fi
 
