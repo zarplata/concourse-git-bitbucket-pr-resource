@@ -99,3 +99,24 @@ respected.
 ### `out`: Update build task status.
   		  
 This updates the build status of the task.
+
+## Troubleshooting
+
+* [Mark PR with "build started" creates a new version of a PR](https://github.com/zarplata/concourse-git-bitbucket-pr-resource/issues/15).
+
+    The Concourse is not available to skipping versions but have the workaround. 
+    You should add the _resource with the same settings_ as `pull-request` for changing the build status only.
+
+    ```
+    - name: test-pull-requests
+      plan:
+      - get: pull-request
+        trigger: true
+        version: every
+      - get: node
+      - put: pull-request-status
+        params:
+          state: INPROGRESS
+          key: concourse-build
+          description: Building on Concourse
+    ```
