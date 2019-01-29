@@ -97,8 +97,13 @@ All `params` and `source` configuration of the original resource will be
 respected.
 
 ### `out`: Update build task status.
-  		  
-This updates the build status of the task.
+ 
+This updates the build status of the pull request commit.
+
+#### Parameters
+
+Parameters except the `name` will be respected the [Bitbucket documentation](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/).
+The `name` parameter is deprecated and has been left only for backward compatibility.
 
 ## Troubleshooting
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim: set ft=sh
 
-set -e -o pipefail
+set -euo pipefail
 
 exec 3>&1
 exec 1>&2
@@ -19,57 +19,64 @@ password=$(jq -r '.source.password // ""' < "${payload}")
 project=$(jq -r '.source.project // ""' < "${payload}")
 repository=$(jq -r '.source.repository // ""' < "${payload}")
 dir=$(jq -r '.source.dir // ""' < "${payload}")
-if [[ ! ${dir} ]]; then
-    dir=$repository
-fi
-# params
-build=$(jq '.params' < "${payload}")
+params=$(jq -rc '.params' < "${payload}")
 
-if [[ ! "${base_url}" ]]; then
-    echo "error: source.base_url can't be empty"
-    exit 1
-fi
-
-cd "${dir}"
+cd "${dir:-$repository}"
 
 pr=$(cat pull-request-info)
-commit=$(echo "${pr}" | jq -r '.commit')
-build_url="${ATC_EXTERNAL_URL}/builds/${BUILD_ID}"
-if [[ "${bitbucket_type}" == "server" ]]; then
-    url="${base_url}/rest/build-status/1.0/commits/${commit}"
 
-    json=$(echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" '{
-        state: .state,
-        key: .key,
-        name: (.key + "-" + $id),
-        url: $build_url,
-        description: .description|tostring
-    }')
-elif [[ "$bitbucket_type" == "cloud" ]]; then
-    url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
+eval_param() {
+    eval echo "$(jq -r "${1}" <<< "${params}")"
+}
 
-    # expand variables like $BUILD_ID before passing into JSON
-    name=$(echo "$build"| jq -r '.name')
-    name=$(eval echo "$name")
-    desc=$(echo "$build"| jq -r '.description')
-    desc=$(eval echo "$desc")
-    build_url=$(echo "$build"| jq -r '.url')
-    build_url=$(eval echo "$build_url")
-    json=$(echo "${build}" | jq --arg build_url "${build_url}" --arg id "${BUILD_ID}" --arg name "${name}" --arg desc "${desc}" '{
-        state: .state,
-        key: $name,
-        name: ($name + "-" + $id),
-        url: $build_url,
-        description: $desc
-    }')
-fi
+change_pr_state() {
+    if [[ ! "${base_url}" ]]; then
+        echo "error: source.base_url can't be empty"
+        exit 1
+    fi
 
-curl -s --fail -u "${username}:${password}" -H "Content-Type: application/json" -XPOST "${url}" -d "${json}"
+    commit=$(echo "${pr}" | jq -r '.commit')
 
-jq -n --argjson pr "${pr}" --argjson pr "${pr}" '{
-    version: {
-        id: $pr.id|tostring,
-        branch: $pr.feature_branch,
-        commit: $pr.commit
-    }
-}' >&3
+    if [[ "${bitbucket_type}" == "server" ]]; then
+        url="${base_url}/rest/build-status/1.0/commits/${commit}"
+    elif [[ "${bitbucket_type}" == "cloud" ]]; then
+        url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
+    else
+        echo "error: incorrect bitbucket server type '${bitbucket_type}'"
+        exit 1
+    fi
+
+    json=$(jq -n \
+        --argjson params "${params}" \
+        --arg key "$(eval_param '.key // ""')" \
+        --arg name "$(eval_param '.name // ""')" \
+        --arg description "$(eval_param '.description // ""')" \
+        '{
+            state: $params.state,
+            key: (if $key != "" then $key else $name end),
+            name: ((if $key != "" then $key else $name end) + "-" + env.BUILD_ID),
+            url: (
+                .params.url // (
+                    "\(env.ATC_EXTERNAL_URL)/builds/\(env.BUILD_ID)"
+                )
+            ),
+            description: $description|tostring
+        }'
+    )
+
+    curl --fail \
+        -u "${username}:${password}" \
+        -H "Content-Type: application/json" \
+        -XPOST "${url}" \
+        -d "${json}"
+
+    jq -n --argjson pr "${pr}" '{
+        version: {
+            id: $pr.id|tostring,
+            branch: $pr.feature_branch,
+            commit: $pr.commit
+        }
+    }' >&3
+}
+
+change_pr_state
