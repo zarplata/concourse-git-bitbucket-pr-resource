@@ -29,13 +29,13 @@ eval_param() {
     eval echo "$(jq -r "${1}" <<< "${params}")"
 }
 
-change_pr_state() {
+change_build_status() {
     if [[ ! "${base_url}" ]]; then
         echo "error: source.base_url can't be empty"
         exit 1
     fi
 
-    commit=$(echo "${pr}" | jq -r '.commit')
+    commit=$(jq -r '.commit' <<< "${pr}")
 
     if [[ "${bitbucket_type}" == "server" ]]; then
         url="${base_url}/rest/build-status/1.0/commits/${commit}"
@@ -46,7 +46,7 @@ change_pr_state() {
         exit 1
     fi
 
-    json=$(jq -n \
+    change_build_status_payload=$(jq -n \
         --argjson params "${params}" \
         --arg key "$(eval_param '.key // ""')" \
         --arg name "$(eval_param '.name // ""')" \
@@ -68,7 +68,7 @@ change_pr_state() {
         -u "${username}:${password}" \
         -H "Content-Type: application/json" \
         -XPOST "${url}" \
-        -d "${json}"
+        -d "${change_build_status_payload}"
 
     jq -n --argjson pr "${pr}" '{
         version: {
@@ -79,4 +79,4 @@ change_pr_state() {
     }' >&3
 }
 
-change_pr_state
+change_build_status
