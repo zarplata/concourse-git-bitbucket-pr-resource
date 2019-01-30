@@ -18,10 +18,10 @@ username=$(jq -r '.source.username // ""' < "${payload}")
 password=$(jq -r '.source.password // ""' < "${payload}")
 project=$(jq -r '.source.project // ""' < "${payload}")
 repository=$(jq -r '.source.repository // ""' < "${payload}")
-dir=$(jq -r '.source.dir // ""' < "${payload}")
+dir=$(jq -r '.params.repository // .source.dir // .source.repository // ""' < "${payload}")
 params=$(jq -rc '.params' < "${payload}")
 
-cd "${dir:-$repository}"
+cd "${dir}"
 
 pr=$(cat pull-request-info)
 
