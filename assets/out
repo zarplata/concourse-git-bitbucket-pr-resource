@@ -23,7 +23,7 @@ params=$(jq -rc '.params' < "${payload}")
 action=$(jq -rc '.action // ""' <<< "${params}")
 
 path="$(realpath "${PWD}"/"${path}")/"
-pr=$(cat "${path}pull-request-info")
+pr=$(cat "${path}.git/pr")
 
 eval_param() {
     eval echo "$(jq -r "${1}" <<< "${params}")"

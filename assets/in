@@ -75,6 +75,8 @@ if [[ "$bitbucket_type" == "server" ]]; then
             updated_at: $version.updated_at
         }' > pull-request-info
 
+    cp pull-request-info .git/pr
+
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             version: $version, 
             metadata: [
@@ -100,6 +102,8 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
             url: $pr.links.html.href,
             updated_at: $pr.created_on
         }' > pull-request-info
+
+    cp pull-request-info .git/pr
 
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
             version: $version, 
