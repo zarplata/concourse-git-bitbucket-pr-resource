@@ -18,12 +18,12 @@ username=$(jq -r '.source.username // ""' < "${payload}")
 password=$(jq -r '.source.password // ""' < "${payload}")
 project=$(jq -r '.source.project // ""' < "${payload}")
 repository=$(jq -r '.source.repository // ""' < "${payload}")
-dir=$(jq -r '.params.repository // .source.dir // .source.repository // ""' < "${payload}")
+path=$(jq -r '.params.repository // .source.dir // .source.repository // ""' < "${payload}")
 params=$(jq -rc '.params' < "${payload}")
+action=$(jq -rc '.action // ""' <<< "${params}")
 
-cd "${dir}"
-
-pr=$(cat pull-request-info)
+path="$(realpath "${PWD}"/"${path}")/"
+pr=$(cat "${path}pull-request-info")
 
 eval_param() {
     eval echo "$(jq -r "${1}" <<< "${params}")"
@@ -79,4 +79,55 @@ change_build_status() {
     }' >&3
 }
 
-change_build_status
+push() {
+    git=$(jq -r '.source.git // ""' < "${payload}")
+
+    git_payload=$(jq -nc \
+        --argjson git "${git}" \
+        --argjson pr "${pr}" \
+        --arg repository "${path}" '
+        {
+            source: (
+                $git * {
+                    branch: $pr.feature_branch
+                }
+            ),
+            params: {
+                repository: $repository 
+            }
+        }
+    ')
+
+    git_payload_out=$(/opt/git-resource/out "${1}" <<< "${git_payload}")
+ 
+    jq -n --argjson pr "${pr}" --argjson git "${git_payload_out}" \
+        '{
+            version: {
+                id: $pr.id|tostring,
+                branch: $pr.feature_branch,
+                commit: $git.version.ref
+            },
+            metadata: $git.metadata
+        }' >&3
+}
+
+case "${action}" in
+    # case for backward compatibility
+    "")
+        echo "warning: please setup the \`action\` parameter"
+        change_build_status
+    ;;
+
+    "change-build-status")
+        change_build_status
+    ;;
+
+    "push")
+        push "${@%/}"
+    ;;
+
+    *)
+        echo "error: incorrect params.action (${action})"
+        exit 1
+    ;;
+esac

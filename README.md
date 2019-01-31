@@ -96,15 +96,21 @@ commit on the branch.
 All `params` and `source` configuration of the original resource will be
 respected.
 
-### `out`: Update build task status.
+### `out`: Update the PR.
  
-This updates the build status of the pull request commit.
+Behavior depends on the value of parameter `action`, where is the values are:
 
-#### Parameters
+* `change-build-status`: Change the commit build status.
 
-* Parameters except the `name` will be respected the [Bitbucket documentation](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/).
-* `name`: `Deprecated`. Parameter is deprecated and has been left only for backward compatibility.
-* `repository`: `Optional`. The path of the source repository for pushing or changing build status.
+    * `action`: `Required`. For this behavior should be `change-build-status`.
+    * Parameters except the `name` will be respected the [Bitbucket documentation](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/).
+    * `name`: `Deprecated`. Parameter is deprecated and has been left only for backward compatibility.
+    * `repository`: `Optional`. The path of the source repository for changing build status.
+
+* `push`: Push the commit to pull request branch.
+
+    * `action`: `Required`. For this behavior should be `push`.
+    * `repository`: `Optional`. The path of the source repository for pushing.
 
 ## Troubleshooting
 
