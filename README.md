@@ -33,7 +33,7 @@ For example: `http://bitbucket.local`
 resource](https://github.com/concourse/git-resource). The `branch` configuration
 from the original resource is ignored.
 * `bitbucket_type`: *Optional*. `cloud` for BitBucket Cloud or `server` for a self-hosted BitBucket Server. `default: server`
-* `dir`: *Optional*. set to name of the resource if resource name is different than repository name
+* `dir`: *Deprecated*. set to name of the resource if resource name is different than repository name. Is deprecated in favor to `params.repository` in `out`.
 * `branch`: *Optional*. if given, only pull requests against this branch will be checked
 
 ### Example
@@ -102,8 +102,9 @@ This updates the build status of the pull request commit.
 
 #### Parameters
 
-Parameters except the `name` will be respected the [Bitbucket documentation](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/).
-The `name` parameter is deprecated and has been left only for backward compatibility.
+* Parameters except the `name` will be respected the [Bitbucket documentation](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/).
+* `name`: `Deprecated`. Parameter is deprecated and has been left only for backward compatibility.
+* `repository`: `Optional`. The path of the source repository for pushing or changing build status.
 
 ## Troubleshooting
 
