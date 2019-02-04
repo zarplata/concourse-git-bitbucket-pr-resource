@@ -85,10 +85,10 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     fi
 
     # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
-    jq -n "[ $prs
-        | map(select(if .title | test(\"wip\"; \"i\") then false else true end))
+    jq --argjson prlist "$(jq -n "$prs")" -n '[ $prlist
+        | map(select(if .title | test("wip"; "i") then false else true end))
         | sort_by(.updated_at)
         | map(del(.updated_at))
-        | .[-1] ]" >&3
+        | .[-1] ]' >&3
 fi
 
