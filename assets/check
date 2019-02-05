@@ -48,7 +48,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
             id: .id | tostring,
             title: .title | tostring,
             branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
-            commit: .fromRef.latestCommit, 
+            commit: .fromRef.latestCommit,
             updated_at: .updatedDate | tostring
         })
         | map(select(if .title | test("wip"; "i") then false else true end))
@@ -74,8 +74,8 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
         # get the commit date, which is when the PR last got updated code-wise.
         # the updated_on field in the PR also changes when comment added etc
-        date=$(curl -s --fail -u "${username}:${password}" $commit_url | jq -r '.date')        
-        
+        date=$(curl -s --fail -u "${username}:${password}" $commit_url | jq -r '.date')
+
         prs+="+ [{id:\"$id\", title: \"$title\", branch: \"$branch\", commit:\"$commit\", updated_at:\"$date\"}]"
     done < <(jq -c '.[]' "${response}")
 
@@ -85,10 +85,10 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     fi
 
     # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
-    jq -n "[ $prs
-        | map(select(if .title | test('wip'; 'i') then false else true end))
+    jq --argjson prlist "$(jq -n "$prs")" -n '[ $prlist
+        | map(select(if .title | test("wip"; "i") then false else true end))
         | sort_by(.updated_at)
         | map(del(.updated_at))
-        | .[-1] ]" >&3
+        | .[-1] ]' >&3
 fi
 
