@@ -6,8 +6,6 @@ set -e -o pipefail
 exec 3>&1
 exec 1>&2
 
-cd "${1}"
-
 payload=$(mktemp /tmp/resource.XXXXXX)
 cat > ${payload} <&0
 
