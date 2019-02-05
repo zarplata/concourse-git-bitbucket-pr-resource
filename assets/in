@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim: set ft=sh
 
-set -e -o pipefail
+set -euo pipefail
 
 exec 3>&1
 exec 1>&2
@@ -12,31 +12,31 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > "${payload}" <&0
 
 # source
-bitbucket_type=`jq -r '.source.bitbucket_type // "server"' < ${payload}`
-base_url=`jq -r '.source.base_url // ""' < ${payload}`
-username=`jq -r '.source.username // ""' < ${payload}`
-password=`jq -r '.source.password // ""' < ${payload}`
-project=`jq -r '.source.project // ""' < ${payload}`
-repository=`jq -r '.source.repository // ""' < ${payload}`
-git=`jq -r '.source.git // ""' < ${payload}`
+bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < ${payload})
+base_url=$(jq -r '.source.base_url // ""' < ${payload})
+username=$(jq -r '.source.username // ""' < ${payload})
+password=$(jq -r '.source.password // ""' < ${payload})
+project=$(jq -r '.source.project // ""' < ${payload})
+repository=$(jq -r '.source.repository // ""' < ${payload})
+git=$(jq -r '.source.git // ""' < ${payload})
 # version
-version=`jq -r '.version' < ${payload}`
-version_id=`jq -r '.version.id' < ${payload}`
-version_branch=`jq -r '.version.branch' < ${payload}`
+version=$(jq -r '.version' < ${payload})
+version_id=$(jq -r '.version.id' < ${payload})
+version_branch=$(jq -r '.version.branch' < ${payload})
 
-if [[ ! ${base_url} ]]; then
+if [[ -z "${base_url}" ]]; then
     echo "error: source.base_url can't be empty"
     exit 1
 fi
-if [[ ! ${project} ]]; then
+if [[ -z "${project}" ]]; then
     echo "error: source.project can't be empty"
     exit 1
 fi
-if [[ ! ${repository} ]]; then
+if [[ -z "${repository}" ]]; then
     echo "error: source.repository can't be empty"
     exit 1
 fi
-if [[ ! ${git} ]]; then
+if [[ -z "${git}" ]]; then
     echo "error: source.git can't be empty"
     exit 1
 fi
@@ -46,11 +46,11 @@ if [[ "$bitbucket_type" == "server" ]]; then
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
-pr=`curl -s --fail -u ${username}:${password} $uri`
+pr=$(curl -s --fail -u ${username}:${password} $uri)
 
-git_payload=`echo ${git} | jq --argjson version "${version}" '
+git_payload=$(echo ${git} | jq --argjson version "${version}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}}
-'` 
+')
 
 resource_path="${@%/}"
 echo $git_payload | /opt/git-resource/in ${resource_path} 1>/dev/null
@@ -78,10 +78,10 @@ if [[ "$bitbucket_type" == "server" ]]; then
     cp pull-request-info .git/pr
 
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
-            version: $version, 
+            version: $version,
             metadata: [
                 {name: "url", value: $pr.links.self[0].href},
-                {name: "author", value: $pr.author.user.displayName}, 
+                {name: "author", value: $pr.author.user.displayName},
                 {name: "commit", value: $version.commit},
                 {name: "feature-branch", value: $version.branch},
                 {name: "upstream-branch", value: $pr.toRef.id}
@@ -106,15 +106,15 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     cp pull-request-info .git/pr
 
     jq -n --argjson version "${version}" --argjson pr "${pr}" '{
-            version: $version, 
+            version: $version,
             metadata: [
                 {name: "title", value: $pr.title},
                 {name: "url", value: $pr.links.html.href},
-                {name: "author", value: $pr.author.display_name}, 
+                {name: "author", value: $pr.author.display_name},
                 {name: "commit", value: $version.commit},
                 {name: "feature-branch", value: $version.branch},
                 {name: "upstream-branch", value: $pr.destination.branch.name},
                 {name: "pullrequest updated", value: $pr.updated_on}
             ]
         }' >&3
-fi        
+fi

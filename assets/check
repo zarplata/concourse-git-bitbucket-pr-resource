@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim: set ft=sh
 
-set -e -o pipefail
+set -euo pipefail
 
 exec 3>&1
 exec 1>&2
@@ -10,26 +10,26 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > ${payload} <&0
 
 # source
-bitbucket_type=`jq -r '.source.bitbucket_type // "server"' < ${payload}`
-base_url=`jq -r '.source.base_url // ""' < ${payload}`
-username=`jq -r '.source.username // ""' < ${payload}`
-password=`jq -r '.source.password // ""' < ${payload}`
-project=`jq -r '.source.project // ""' < ${payload}`
-repository=`jq -r '.source.repository // ""' < ${payload}`
-limit=`jq -r '.source.limit // 100' < ${payload}`
-source_branch=`jq -r '.source.branch // ""' < ${payload}`
+bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < ${payload})
+base_url=$(jq -r '.source.base_url // ""' < ${payload})
+username=$(jq -r '.source.username // ""' < ${payload})
+password=$(jq -r '.source.password // ""' < ${payload})
+project=$(jq -r '.source.project // ""' < ${payload})
+repository=$(jq -r '.source.repository // ""' < ${payload})
+limit=$(jq -r '.source.limit // 100' < ${payload})
+source_branch=$(jq -r '.source.branch // ""' < ${payload})
 # version
-version_updated_at=`jq -r '.version.updated_at // 0' < ${payload}`
+version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
 
-if [[ ! ${base_url} ]]; then
+if [[ -z "${base_url}" ]]; then
     echo "error: source.base_url can't be empty"
     exit 1
 fi
-if [[ ! ${project} ]]; then
+if [[ -z "${project}" ]]; then
     echo "error: source.project can't be empty"
     exit 1
 fi
-if [[ ! ${repository} ]]; then
+if [[ -z "${repository}" ]]; then
     echo "error: source.repository can't be empty"
     exit 1
 fi
@@ -37,7 +37,7 @@ fi
 
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
-    [[ "${source_branch}" ]] && branch_param="&at=refs/heads/${source_branch}"
+    [[ -n "${source_branch}" ]] && branch_param="&at=refs/heads/${source_branch}"
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
     curl -sS --fail -u ${username}:${password} $uri | jq -r --arg version_updated_at "${version_updated_at}" \
@@ -63,7 +63,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     while read -r pullrequest; do
         branch=$(echo "$pullrequest" | jq -r '.source.branch.name')
         if [[ "${source_branch}" ]]; then
-            [[ "${branch}" = "${source_branch}" ]] || continue
+            [[ "${branch}" == "${source_branch}" ]] || continue
         fi
         id=$(echo "$pullrequest" | jq -r '.id')
         title=$(echo "$pullrequest" | jq -r '.title')
@@ -90,4 +90,3 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         | map(del(.updated_at))
         | .[-1] ]' >&3
 fi
-
