@@ -42,7 +42,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
     [[ "${source_branch}" ]] && branch_param="&at=refs/heads/${source_branch}"
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
-    curl -sS --fail -u ${username}:${password} $uri | jq -r \
+    curl -sS --fail -u ${username}:${password} $uri | jq -r --arg version_updated_at "${version_updated_at}" \
         '.values
         | map({
             id: .id | tostring,
@@ -52,7 +52,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
             updated_at: .updatedDate | tostring
         })
         | map(select(if .title | test("wip"; "i") then false else true end))
-        | map(select(.updated_at >= '$version_updated_at'))
+        | map(select(.updated_at >= $version_updated_at))
         | sort_by(.updated_at)' >&3
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
@@ -76,16 +76,17 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         # the updated_on field in the PR also changes when comment added etc
         date=$(curl -s --fail -u "${username}:${password}" $commit_url | jq -r '.date')
 
-        prs+="+ [{id:\"$id\", title: \"$title\", branch: \"$branch\", commit:\"$commit\", updated_at:\"$date\"}]"
+        pr=$(jq -n --arg id "${id}" --arg title "${title}" --arg branch "${branch}" --arg commit "${commit}" --arg date "${date}" '[{id: $id, title: $title, branch: $branch, commit: $commit, updated_at: $date}]')
+        prs=$(jq -n --argjson prs "${prs}" --argjson pr "${pr}"  '$prs + $pr')
     done < <(jq -c '.[]' "${response}")
 
-    if [[ "$prs" == "[]" ]]; then
+    if [[ $(echo "${prs}" | jq length) -eq 0 ]]; then
         jq -n "$prs" >&3
         exit
     fi
 
     # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
-    jq --argjson prlist "$(jq -n "$prs")" -n '[ $prlist
+    jq -n --argjson prs "${prs}" '[ $prs
         | map(select(if .title | test("wip"; "i") then false else true end))
         | sort_by(.updated_at)
         | map(del(.updated_at))
