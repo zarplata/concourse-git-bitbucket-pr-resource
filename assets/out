@@ -64,7 +64,7 @@ change_build_status() {
         }'
     )
 
-    curl --fail \
+    curl -s --fail \
         -u "${username}:${password}" \
         -H "Content-Type: application/json" \
         -XPOST "${url}" \
