@@ -30,7 +30,7 @@ eval_param() {
 }
 
 change_build_status() {
-    if [[ ! "${base_url}" ]]; then
+    if [[ -z "${base_url}" ]]; then
         echo "error: source.base_url can't be empty"
         exit 1
     fi
@@ -64,7 +64,7 @@ change_build_status() {
         }'
     )
 
-    curl --fail \
+    curl -s --fail \
         -u "${username}:${password}" \
         -H "Content-Type: application/json" \
         -XPOST "${url}" \
