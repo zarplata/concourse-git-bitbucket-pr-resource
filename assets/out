@@ -73,6 +73,7 @@ change_build_status() {
     jq -n --argjson pr "${pr}" '{
         version: {
             id: $pr.id|tostring,
+            title: $pr.title,
             branch: $pr.feature_branch,
             commit: $pr.commit
         }
@@ -104,6 +105,7 @@ push() {
         '{
             version: {
                 id: $pr.id|tostring,
+                title: $pr.title,
                 branch: $pr.feature_branch,
                 commit: $git.version.ref
             },
