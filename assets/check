@@ -7,7 +7,7 @@ exec 3>&1
 exec 1>&2
 
 payload=$(mktemp /tmp/resource.XXXXXX)
-cat > ${payload} <&0
+cat > "${payload}" <&0
 
 # source
 bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < ${payload})
@@ -37,7 +37,11 @@ fi
 
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
-    [[ -n "${source_branch}" ]] && branch_param="&at=refs/heads/${source_branch}"
+    if [[ -n "${source_branch}" ]]; then 
+        branch_param="&at=refs/heads/${source_branch}"
+    else
+        branch_param=""
+    fi
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
     curl -sS --fail -u ${username}:${password} $uri | jq -r --arg version_updated_at "${version_updated_at}" \
