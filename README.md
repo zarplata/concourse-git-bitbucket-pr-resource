@@ -75,7 +75,7 @@ jobs:
           params:
             state: SUCCESSFUL
             name: "unit test"
-            url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"      
+            url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
 ```
 
 ## Behavior

@@ -47,16 +47,17 @@ change_build_status() {
     fi
 
     change_build_status_payload=$(jq -n \
-        --argjson params "${params}" \
         --arg key "$(eval_param '.key // ""')" \
         --arg name "$(eval_param '.name // ""')" \
         --arg description "$(eval_param '.description // ""')" \
+        --arg state "$(eval_param '.state // ""')" \
+        --arg url "$(eval_param '.url // ""')" \
         '{
-            state: $params.state,
+            state: $state,
             key: (if $key != "" then $key else $name end),
             name: ((if $key != "" then $key else $name end) + "-" + env.BUILD_ID),
             url: (
-                $params.url // (
+                $url // (
                     "\(env.ATC_EXTERNAL_URL)/builds/\(env.BUILD_ID)"
                 )
             ),
