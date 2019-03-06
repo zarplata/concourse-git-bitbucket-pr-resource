@@ -57,9 +57,11 @@ change_build_status() {
             key: (if $key != "" then $key else $name end),
             name: ((if $key != "" then $key else $name end) + "-" + env.BUILD_ID),
             url: (
-                $url // (
+                if $url != "" then
+                    $url
+                else
                     "\(env.ATC_EXTERNAL_URL)/builds/\(env.BUILD_ID)"
-                )
+                end
             ),
             description: $description|tostring
         }'
