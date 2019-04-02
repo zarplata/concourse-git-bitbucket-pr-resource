@@ -73,13 +73,19 @@ change_build_status() {
         -XPOST "${url}" \
         -d "${change_build_status_payload}"
 
-    jq -n --argjson pr "${pr}" '{
+    jq -n --argjson pr "${pr}" --argjson payload "${change_build_status_payload}" '{
         version: {
             id: $pr.id|tostring,
             title: $pr.title,
             branch: $pr.feature_branch,
             commit: $pr.commit
-        }
+        },
+        metadata: [
+            {name: "state", value: $payload.state},
+            {name: "key", value: $payload.key},
+            {name: "name", value: $payload.name},
+            {name: "description", value: $payload.description}
+        ]
     }' >&3
 }
 
