@@ -93,8 +93,12 @@ This resource delegates entirely to the `in` of the original Git resource, by
 specifying `source.branch` as the branch that changed, and `version.ref` as the
 commit on the branch.
 
-All `params` and `source` configuration of the original resource will be
+#### Parameters
+
+All `params` and `source` configuration of the original `git-resource` will be
 respected.
+
+* `skip_download`: `Optional`. Skip `git pull`. Artifacts based on the git will not be present. 
 
 ### `out`: Update the PR.
  

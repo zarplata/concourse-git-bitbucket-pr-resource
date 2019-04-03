@@ -19,6 +19,8 @@ password="$(jq -r '.source.password // ""' < "${payload}")"
 project="$(jq -r '.source.project // ""' < "${payload}")"
 repository="$(jq -r '.source.repository // ""' < "${payload}")"
 git="$(jq -r '.source.git // ""' < "${payload}")"
+# params
+skip_download="$(jq -r '.params.skip_download // false' < "${payload}")"
 # version
 version="$(jq -r '.version' < "${payload}")"
 version_id="$(jq -r '.version.id' < "${payload}")"
@@ -53,7 +55,12 @@ git_payload=$(echo "${git}" | jq --argjson version "${version}" '
 ')
 
 resource_path="${@%/}"
-echo "$git_payload" | /opt/git-resource/in "${resource_path}" 1>/dev/null
+if [[ "${skip_download}" = "false" ]]; then
+    echo "$git_payload" | /opt/git-resource/in "${resource_path}" 1>/dev/null
+else
+    mkdir -p ${resource_path}/.git/info
+fi
+
 # exclude pull-request-info from git index
 echo "pull-request-info" > ${resource_path}/.git/info/exclude
 
