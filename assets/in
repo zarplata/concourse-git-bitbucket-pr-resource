@@ -12,17 +12,16 @@ payload=$(mktemp /tmp/resource.XXXXXX)
 cat > "${payload}" <&0
 
 # source
-bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < ${payload})
-base_url=$(jq -r '.source.base_url // ""' < ${payload})
-username=$(jq -r '.source.username // ""' < ${payload})
-password=$(jq -r '.source.password // ""' < ${payload})
-project=$(jq -r '.source.project // ""' < ${payload})
-repository=$(jq -r '.source.repository // ""' < ${payload})
-git=$(jq -r '.source.git // ""' < ${payload})
+bitbucket_type="$(jq -r '.source.bitbucket_type // "server"' < "${payload}")"
+base_url="$(jq -r '.source.base_url // ""' < "${payload}")"
+username="$(jq -r '.source.username // ""' < "${payload}")"
+password="$(jq -r '.source.password // ""' < "${payload}")"
+project="$(jq -r '.source.project // ""' < "${payload}")"
+repository="$(jq -r '.source.repository // ""' < "${payload}")"
+git="$(jq -r '.source.git // ""' < "${payload}")"
 # version
-version=$(jq -r '.version' < ${payload})
-version_id=$(jq -r '.version.id' < ${payload})
-version_branch=$(jq -r '.version.branch' < ${payload})
+version="$(jq -r '.version' < "${payload}")"
+version_id="$(jq -r '.version.id' < "${payload}")"
 
 if [[ -z "${base_url}" ]]; then
     echo "error: source.base_url can't be empty"
@@ -47,14 +46,14 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -s --fail -u ${username}:${password} "${uri}" > "${pr}"
+curl -s --fail -u "${username}:${password}" "${uri}" > "${pr}"
 
-git_payload=$(echo ${git} | jq --argjson version "${version}" '
+git_payload=$(echo "${git}" | jq --argjson version "${version}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}}
 ')
 
 resource_path="${@%/}"
-echo $git_payload | /opt/git-resource/in ${resource_path} 1>/dev/null
+echo "$git_payload" | /opt/git-resource/in "${resource_path}" 1>/dev/null
 # exclude pull-request-info from git index
 echo "pull-request-info" > ${resource_path}/.git/info/exclude
 
