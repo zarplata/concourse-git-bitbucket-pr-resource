@@ -56,7 +56,7 @@ git_payload=$(echo "${git}" | jq --argjson version "${version}" '
 
 resource_path="${@%/}"
 if [[ "${skip_download}" = "false" ]]; then
-    echo "$git_payload" | /opt/git-resource/in "${resource_path}" 1>/dev/null
+    echo "$git_payload" | /opt/git-resource/in "${resource_path}"
 else
     mkdir -p ${resource_path}/.git/info
 fi
