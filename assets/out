@@ -117,8 +117,7 @@ push() {
                 id: $pr.id|tostring,
                 title: $pr.title,
                 branch: $pr.feature_branch,
-                commit: $git.version.ref,
-                updated_at: $pr.updated_at
+                commit: $git.version.ref
             },
             metadata: $git.metadata
         }' >&3
