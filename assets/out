@@ -78,8 +78,7 @@ change_build_status() {
             id: $pr.id|tostring,
             title: $pr.title,
             branch: $pr.feature_branch,
-            commit: $pr.commit,
-            updated_at: $pr.updated_at
+            commit: $pr.commit
         },
         metadata: [
             {name: "state", value: $payload.state},
@@ -117,8 +116,7 @@ push() {
                 id: $pr.id|tostring,
                 title: $pr.title,
                 branch: $pr.feature_branch,
-                commit: $git.version.ref,
-                updated_at: $pr.updated_at
+                commit: $git.version.ref
             },
             metadata: $git.metadata
         }' >&3
