@@ -50,8 +50,8 @@ fi
 pr=$(mktemp /tmp/resource.XXXXXX)
 curl -sL --fail -u "${username}:${password}" "${uri}" > "${pr}"
 
-git_payload=$(echo "${git}" | jq --argjson version "${version}" '
-    {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}}
+git_payload=$(echo "${git}" | jq --argjson version "${version}" --slurpfile pr "${pr}" '
+    {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}} + {params: {fetch: [ $pr[0].toRef.id|ltrimstr("refs/heads/") ]}}
 ')
 
 resource_path="${@%/}"
