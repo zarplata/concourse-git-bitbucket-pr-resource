@@ -47,15 +47,15 @@ change_build_status() {
     fi
 
     change_build_status_payload=$(jq -n \
-        --arg key "$(eval_param '.key // ""')" \
-        --arg name "$(eval_param '.name // ""')" \
+        --arg key "$(eval_param '.key // env.BUILD_JOB_NAME')" \
+        --arg name "$(eval_param '.name // "\(env.BUILD_JOB_NAME)-\(env.BUILD_ID)"')" \
         --arg description "$(eval_param '.description // ""')" \
         --arg state "$(eval_param '.state // ""')" \
         --arg url "$(eval_param '.url // ""')" \
         '{
             state: $state,
-            key: (if $key != "" then $key else $name end),
-            name: ((if $key != "" then $key else $name end) + "-" + env.BUILD_ID),
+            key: $key,
+            name: $name,
             url: (
                 if $url != "" then
                     $url
