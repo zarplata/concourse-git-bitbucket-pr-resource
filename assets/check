@@ -55,7 +55,8 @@ if [[ "$bitbucket_type" == "server" ]]; then
         })
         | map(select(if .title | test("wip"; "i") then false else true end))
         | map(select(.updated_at >= $version_updated_at))
-        | sort_by(.updated_at)' >&3
+        | sort_by(.updated_at)
+        | map(del(.updated_at))' >&3
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
 
