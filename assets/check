@@ -46,7 +46,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
     curl -sS --fail -u ${username}:${password} $uri \
-        | jq -r --arg version_updated_at "${version_updated_at}" --arg version_commit $version_commit \
+        | jq -r --arg version_updated_at "${version_updated_at}" --arg version_commit "${version_commit}" \
         '.values
         | map({
             id: .id | tostring,
