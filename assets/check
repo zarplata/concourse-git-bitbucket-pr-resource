@@ -20,7 +20,6 @@ limit=$(jq -r '.source.limit // 100' < ${payload})
 source_branch=$(jq -r '.source.branch // ""' < ${payload})
 # version
 version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
-version_commit=$(jq -r '.version.commit // ""' < ${payload})
 
 if [[ -z "${base_url}" ]]; then
     echo "error: source.base_url can't be empty"
@@ -38,15 +37,14 @@ fi
 
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
-    if [[ -n "${source_branch}" ]]; then
+    if [[ -n "${source_branch}" ]]; then 
         branch_param="&at=refs/heads/${source_branch}"
     else
         branch_param=""
     fi
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests?limit=${limit}&state=open${branch_param}"
 
-    curl -sS --fail -u ${username}:${password} $uri \
-        | jq -r --arg version_updated_at "${version_updated_at}" --arg version_commit $version_commit \
+    curl -sS --fail -u ${username}:${password} $uri | jq -r --arg version_updated_at "${version_updated_at}" \
         '.values
         | map({
             id: .id | tostring,
@@ -56,7 +54,6 @@ if [[ "$bitbucket_type" == "server" ]]; then
             updated_at: .updatedDate | tostring
         })
         | map(select(if .title | test("wip"; "i") then false else true end))
-        | map(select(.commit != $version_commit))
         | map(select(.updated_at >= $version_updated_at))
         | sort_by(.updated_at)
         | map(del(.updated_at))' >&3
