@@ -67,7 +67,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
 
     echo "${prs}" | jq --argjson version_updated_at "${version_updated_at}" '
         map(. + {updated_at: .updated_at|tonumber})
-        | map(select(.updated_at > $version_updated_at))
+        | map(select(.updated_at >= $version_updated_at))
         | map(select(.title | ascii_downcase | contains("wip") == false))
         | sort_by(.updated_at)
         | map(del(.updated_at))' >&3
