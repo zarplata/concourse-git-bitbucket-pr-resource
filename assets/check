@@ -47,18 +47,28 @@ if [[ "$bitbucket_type" == "server" ]]; then
         branch_param=""
     fi
 
-    request "/pull-requests?limit=${limit}&state=open${branch_param}" \
-        | jq -r --arg version_updated_at "${version_updated_at}" \
-        '.values
-        | map({
-            id: .id | tostring,
-            title: .title | tostring,
-            branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
-            commit: .fromRef.latestCommit,
-            updated_at: .updatedDate | tostring
-        })
-        | map(select(.updated_at >= $version_updated_at))
-        | map(select(if .title | ascii_downcase | contains("wip") == false))
+    if [[ -f /tmp/pr-last-updated-at ]]; then
+        version_updated_at=$(cat /tmp/pr-last-updated-at)
+    fi
+
+    prs=$(request "/pull-requests?limit=${limit}&state=open${branch_param}" \
+        | jq '
+            .values
+            | map({
+                id: .id | tostring,
+                title: .title | tostring,
+                branch: .fromRef.id | tostring | (capture("refs/heads/(?<branch>.+)").branch // .),
+                commit: .fromRef.latestCommit,
+                updated_at: .updatedDate | tostring
+            })
+        ')
+
+    echo "${prs}" | jq -r 'first | .updated_at' > /tmp/pr-last-updated-at
+
+    echo "${prs}" | jq --argjson version_updated_at "${version_updated_at}" '
+        map(. + {updated_at: .updated_at|tonumber})
+        | map(select(.updated_at > $version_updated_at))
+        | map(select(.title | ascii_downcase | contains("wip") == false))
         | sort_by(.updated_at)
         | map(del(.updated_at))' >&3
 elif [[ "$bitbucket_type" == "cloud" ]]; then
