@@ -67,12 +67,14 @@ jobs:
         on_failure:
           put: my-repo-with-pull-requests
           params:
+            action: change-build-status
             state: FAILED
             name: "unit test"
             url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
         on_success:
           put: my-repo-with-pull-requests
           params:
+            action: change-build-status
             state: SUCCESSFUL
             name: "unit test"
             url: "http://acme.com/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
@@ -132,6 +134,7 @@ Behavior depends on the value of parameter `action`, where is the values are:
       - get: node
       - put: pull-request-status
         params:
+          action: change-build-status
           state: INPROGRESS
           key: concourse-build
           description: Building on Concourse
