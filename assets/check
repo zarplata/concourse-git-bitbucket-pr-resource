@@ -38,7 +38,7 @@ fi
 if [[ "$bitbucket_type" == "server" ]]; then
     request() {
         uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}${1}"
-        curl -sS --fail -u "${username}:${password}" "$uri"
+        curl -sSL --fail -u "${username}:${password}" "$uri"
     }
 
     if [[ -n "${source_branch}" ]]; then
@@ -76,7 +76,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)
-    curl -sS --fail -u "${username}:${password}" $uri | jq -r '.values' > "${response}"
+    curl -sSL --fail -u "${username}:${password}" $uri | jq -r '.values' > "${response}"
 
     prs="[]"
     while read -r pullrequest; do
@@ -91,7 +91,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
         # get the commit date, which is when the PR last got updated code-wise.
         # the updated_on field in the PR also changes when comment added etc
-        date=$(curl -s --fail -u "${username}:${password}" $commit_url | jq -r '.date')
+        date=$(curl -sL --fail -u "${username}:${password}" $commit_url | jq -r '.date')
 
         pr=$(jq -n --arg id "${id}" --arg title "${title}" --arg branch "${branch}" --arg commit "${commit}" --arg date "${date}" '[{id: $id, title: $title, branch: $branch, commit: $commit, updated_at: $date}]')
         prs=$(jq -n --argjson prs "${prs}" --argjson pr "${pr}"  '$prs + $pr')
