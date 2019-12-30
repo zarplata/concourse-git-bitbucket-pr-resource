@@ -48,7 +48,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -s --fail -u "${username}:${password}" "${uri}" > "${pr}"
+curl -sL --fail -u "${username}:${password}" "${uri}" > "${pr}"
 
 git_payload=$(echo "${git}" | jq --argjson version "${version}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}}
