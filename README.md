@@ -35,6 +35,9 @@ from the original resource is ignored.
 * `bitbucket_type`: *Optional*. `cloud` for BitBucket Cloud or `server` for a self-hosted BitBucket Server. `default: server`
 * `dir`: *Deprecated*. set to name of the resource if resource name is different than repository name. Is deprecated in favor to `params.repository` in `out`.
 * `branch`: *Optional*. if given, only pull requests against this branch will be checked
+* `paths`: *Optional*. if specified (as a list of glob patterns), only changes to the specified files will yield new versions from check
+* `changes_limit`: *Optional*. the maximum number of changed `paths` loaded for each pull-request. `default: 100`. It works only with the `paths` parameter.
+
 
 ### Example
 
