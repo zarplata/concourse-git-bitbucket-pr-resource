@@ -17,7 +17,10 @@ password=$(jq -r '.source.password // ""' < ${payload})
 project=$(jq -r '.source.project // ""' < ${payload})
 repository=$(jq -r '.source.repository // ""' < ${payload})
 limit=$(jq -r '.source.limit // 100' < ${payload})
+changes_limit=$(jq -r '.source.changes_limit // 100' < ${payload})
 source_branch=$(jq -r '.source.branch // ""' < ${payload})
+paths=$(jq -r '.source.paths // ""' < ${payload})
+
 # version
 version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
 
@@ -62,6 +65,23 @@ if [[ "$bitbucket_type" == "server" ]]; then
                 updated_at: .updatedDate | tostring
             })
         ')
+
+    if [[ -n "${paths}" ]]; then
+        ids=""
+        paths=$(jq -r 'join("|^")' <<< $paths)
+        
+        for id in $(jq -r '.[].id' <<< "$prs"); do
+            uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${id}/changes?limit=${changes_limit}"
+
+            changes=$(curl -sSL --fail -u ${username}:${password} "${uri}" \
+                | jq --arg paths ^$paths '.values | map(.path.parent) | map(select(test($paths))) | any')
+            [[ $changes != false ]] && ids+="${id},"
+        done
+
+        if [[ -n ${ids} ]]; then
+            prs=$(jq --argjson ids [${ids::-1}] 'map(select( .id as $in | $ids | index($in | tonumber)))' <<< "$prs")
+        fi
+    fi
 
     echo "${prs}" | jq -r 'first | .updated_at' > /tmp/pr-last-updated-at
 
