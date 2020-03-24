@@ -95,15 +95,16 @@ If any pull request are new or updated or removed, a new version is emitted.
 ### `in`: Fetch the commit that changed the pull request.
 
 This resource delegates entirely to the `in` of the original Git resource, by
+passing through `source.git` to `source` of the original `git-resource`, then
 specifying `source.branch` as the branch that changed, and `version.ref` as the
 commit on the branch.
 
 #### Parameters
 
-All `params` and `source` configuration of the original `git-resource` will be
-respected.
+All `params`, except the ones listed below, will be passed through to `params` of the original `git-resource`.
 
-* `skip_download`: `Optional`. Skip `git pull`. Artifacts based on the git will not be present. 
+* `skip_download`: `Optional`. Skip `git pull`. Artifacts based on the git will not be present.
+* `fetch_upstream`: `Optional`. Also fetch the pull requests' upstream ref. This will overwrite the `fetch` param.
 
 ### `out`: Update the PR.
  
