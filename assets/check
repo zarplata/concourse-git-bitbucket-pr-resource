@@ -69,7 +69,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
     if [[ -n "${paths}" ]]; then
         ids=""
         paths=$(jq -r 'join("|^")' <<< $paths)
-        
+
         for id in $(jq -r '.[].id' <<< "$prs"); do
             uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${id}/changes?limit=${changes_limit}"
 
@@ -90,6 +90,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
         | map(select(.updated_at >= $version_updated_at))
         | map(select(.title | ascii_downcase | contains("wip") == false))
         | sort_by(.updated_at)
+        | .
         | map(del(.updated_at))' >&3
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
