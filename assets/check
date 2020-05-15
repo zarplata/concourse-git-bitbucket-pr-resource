@@ -80,6 +80,8 @@ if [[ "$bitbucket_type" == "server" ]]; then
 
         if [[ -n ${ids} ]]; then
             prs=$(jq --argjson ids [${ids::-1}] 'map(select( .id as $in | $ids | index($in | tonumber)))' <<< "$prs")
+        else
+            prs="[]"
         fi
     fi
 
