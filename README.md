@@ -37,7 +37,7 @@ from the original resource is ignored.
 * `branch`: *Optional*. if given, only pull requests against this branch will be checked
 * `paths`: *Optional*. if specified (as a list of glob patterns), only changes to the specified files will yield new versions from check
 * `changes_limit`: *Optional*. the maximum number of changed `paths` loaded for each pull-request. `default: 100`. It works only with the `paths` parameter.
-
+* `direction`: *Optional*. the direction relative to the specified repository, either `incoming` (destination, e.g. to master) or `outgoing` (source, e.g. from feature).
 
 ### Example
 

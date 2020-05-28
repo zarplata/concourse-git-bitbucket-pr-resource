@@ -20,6 +20,7 @@ limit=$(jq -r '.source.limit // 100' < ${payload})
 changes_limit=$(jq -r '.source.changes_limit // 100' < ${payload})
 source_branch=$(jq -r '.source.branch // ""' < ${payload})
 paths=$(jq -r '.source.paths // ""' < ${payload})
+direction=$(jq -r '.source.direction // ""' < ${payload})
 
 # version
 version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
@@ -50,11 +51,17 @@ if [[ "$bitbucket_type" == "server" ]]; then
         branch_param=""
     fi
 
+    if [[ -n "${direction}" ]]; then
+        direction_param="&direction=${direction}"
+    else
+        direction_param=""
+    fi
+
     if [[ -f /tmp/pr-last-updated-at ]]; then
         version_updated_at=$(cat /tmp/pr-last-updated-at)
     fi
 
-    prs=$(request "/pull-requests?limit=${limit}&state=open${branch_param}" \
+    prs=$(request "/pull-requests?limit=${limit}&state=open${branch_param}${direction_param}" \
         | jq '
             .values
             | map({
@@ -101,9 +108,15 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     response=$(mktemp /tmp/resource.XXXXXX)
     curl -sSL --fail -u "${username}:${password}" $uri | jq -r '.values' > "${response}"
 
+    if [[ "${direction}" == "incoming" ]]; then
+        branch_object="destination"
+    else
+        branch_object="source"
+    fi
+
     prs="[]"
     while read -r pullrequest; do
-        branch=$(echo "$pullrequest" | jq -r '.source.branch.name')
+        branch=$(echo "$pullrequest" | jq -r ".${branch_object}.branch.name")
         if [[ "${source_branch}" ]]; then
             [[ "${branch}" == "${source_branch}" ]] || continue
         fi
