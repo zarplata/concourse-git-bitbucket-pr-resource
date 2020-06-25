@@ -43,6 +43,7 @@ Or:
 * `oauth_id`: *Required*. Oauth id of an OAuth consumer configured as private and with permission to write to PRs.
 * `oauth_secret`: *Required*. Oauth secret of the same consumer.
 
+* `exclude_title`: *Optional*. prevent *check* from emitting new versions when only the pull request title changes, except when the string "WIP" is removed from the title.
 
 ### Example
 
