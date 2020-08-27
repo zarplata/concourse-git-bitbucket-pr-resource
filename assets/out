@@ -21,6 +21,8 @@ repository=$(jq -r '.source.repository // ""' < "${payload}")
 path=$(jq -r '.params.repository // .source.dir // .source.repository // ""' < "${payload}")
 params=$(jq -rc '.params' < "${payload}")
 action=$(jq -rc '.action // ""' <<< "${params}")
+oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
+oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
 
 path="$(realpath "${PWD}"/"${path}")/"
 pr=$(cat "${path}.git/pr")
@@ -67,8 +69,16 @@ change_build_status() {
         }'
     )
 
+    authentication=(-u ${username}:${password})
+    if [[ -n "${oauth_id}" ]]; then
+        oauth_response=$(mktemp /tmp/resource.XXXXXX)
+        uri="${base_url}/site/oauth2/access_token"
+        curl -XPOST -sSL --fail -u "${oauth_id}:${oauth_secret}" -d grant_type=client_credentials $uri | jq -r '.access_token' > "${oauth_response}"
+        authentication=(-H "Authorization: Bearer `cat $oauth_response`")
+    fi
+
     curl -sL --fail \
-        -u "${username}:${password}" \
+        "${authentication[@]}" \
         -H "Content-Type: application/json" \
         -XPOST "${url}" \
         -d "${change_build_status_payload}"
