@@ -24,8 +24,6 @@ resource_types:
 
 * `base_url`: *Required*. base URL of the bitbucket server, without a trailing slash. 
 For example: `http://bitbucket.local`
-* `username`: *Required*. username of the user which have access to repository.
-* `password`: *Required*. password of that user
 * `project`: *Required*. project for tracking
 * `repository`: *Required*. repository for tracking
 * `limit`: *Optional*. limit of tracked pull requests `default: 100`.
@@ -38,6 +36,13 @@ from the original resource is ignored.
 * `paths`: *Optional*. if specified (as a list of glob patterns), only changes to the specified files will yield new versions from check
 * `changes_limit`: *Optional*. the maximum number of changed `paths` loaded for each pull-request. `default: 100`. It works only with the `paths` parameter.
 * `direction`: *Optional*. the direction relative to the specified repository, either `incoming` (destination, e.g. to master) or `outgoing` (source, e.g. from feature).
+Either:
+* `username`: *Required*. username of the user which have access to repository.
+* `password`: *Required*. password of that user
+Or:
+* `oauth_id`: *Required*. Oauth id of an OAuth consumer configured as private and with permission to write to PRs.
+* `oauth_secret`: *Required*. Oauth secret of the same consumer.
+
 
 ### Example
 

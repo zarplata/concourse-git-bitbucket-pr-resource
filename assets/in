@@ -19,6 +19,8 @@ password="$(jq -r '.source.password // ""' < "${payload}")"
 project="$(jq -r '.source.project // ""' < "${payload}")"
 repository="$(jq -r '.source.repository // ""' < "${payload}")"
 git="$(jq -r '.source.git // ""' < "${payload}")"
+oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
+oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
 # params
 skip_download="$(jq -r '.params.skip_download // false' < "${payload}")"
 fetch_upstream="$(jq -r '.params.fetch_upstream // false' < "${payload}")"
@@ -44,13 +46,22 @@ if [[ -z "${git}" ]]; then
     exit 1
 fi
 
+authentication=(-u ${username}:${password})
+if [[ -n "${oauth_id}" ]]; then
+    oauth_response=$(mktemp /tmp/resource.XXXXXX)
+    uri="${base_url}/site/oauth2/access_token"
+    curl -XPOST -sSL --fail -u "${oauth_id}:${oauth_secret}" -d grant_type=client_credentials $uri | jq -r '.access_token' > "${oauth_response}"
+    authentication=(-H "Authorization: Bearer `cat $oauth_response`")
+fi
+
 if [[ "$bitbucket_type" == "server" ]]; then
     uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${version_id}"
 elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
+
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -sL --fail -u "${username}:${password}" "${uri}" > "${pr}"
+curl -sL --fail "${authentication[@]}" "${uri}" > "${pr}"
 
 git_payload=$(echo "${git}" | jq --argjson version "${version}" --argjson params "${git_params}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}} + {params: $params}
