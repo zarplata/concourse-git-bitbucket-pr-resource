@@ -116,7 +116,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)
-    curl -v -sSL --fail "${authentication[@]}" $uri | jq -r '.values' > "${response}"
+    curl -sSL --fail "${authentication[@]}" $uri | jq -r ".values[0:$limit]" > "${response}"
     if [[ "${direction}" == "incoming" ]]; then
         branch_object="destination"
     else
