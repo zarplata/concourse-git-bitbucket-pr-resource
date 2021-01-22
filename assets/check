@@ -112,7 +112,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         curl -XPOST -sSL --fail -u "${oauth_id}:${oauth_secret}" -d grant_type=client_credentials $uri | jq -r '.access_token' > "${oauth_response}"
         authentication=(-H "Authorization: Bearer `cat $oauth_response`")
     fi
-    uri="${base_url}/api/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
+    uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)

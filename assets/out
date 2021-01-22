@@ -42,7 +42,7 @@ change_build_status() {
     if [[ "${bitbucket_type}" == "server" ]]; then
         url="${base_url}/rest/build-status/1.0/commits/${commit}"
     elif [[ "${bitbucket_type}" == "cloud" ]]; then
-        url="${base_url}/api/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
+        url="${base_url}/2.0/repositories/${project}/${repository}/commit/${commit}/statuses/build"
     else
         echo "error: incorrect bitbucket server type '${bitbucket_type}'"
         exit 1
