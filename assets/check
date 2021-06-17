@@ -151,5 +151,6 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     jq -n --argjson prs "${prs}" '[ $prs
         | map(select(if .title | test("wip"; "i") then false else true end))
         | sort_by(.updated_at)
-        | map(del(.updated_at)) ]' >&3
+        | map(del(.updated_at))
+        | .[] ]' >&3
 fi
