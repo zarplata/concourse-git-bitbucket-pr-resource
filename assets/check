@@ -134,11 +134,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         commit=$(echo "$pullrequest" | jq -r '.source.commit.hash')
         commit_url=$(echo "$pullrequest" | jq -r '.source.commit.links.self.href')
 
-        # get the commit date, which is when the PR last got updated code-wise.
-        # the updated_on field in the PR also changes when comment added etc
-        date=$(curl -sSL "${authentication[@]}" $commit_url | jq -r '.date')
-
-        pr=$(jq -n --arg id "${id}" --arg title "${title}" --arg branch "${branch}" --arg commit "${commit}" --arg date "${date}" '[{id: $id, title: $title, branch: $branch, commit: $commit, updated_at: $date}]')
+        pr=$(jq -n --arg id "${id}" --arg title "${title}" --arg branch "${branch}" --arg commit "${commit}" '[{id: $id, title: $title, branch: $branch, commit: $commit}]')
         prs=$(jq -n --argjson prs "${prs}" --argjson pr "${pr}"  '$prs + $pr')
     done < <(jq -c '.[]' "${response}")
 
@@ -147,10 +143,8 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         exit
     fi
 
-    # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
+    # take the list of PRs | filter out containing "wip" in title, wrap as array for concourse
     jq -n --argjson prs "${prs}" '[ $prs
         | map(select(if .title | test("wip"; "i") then false else true end))
-        | sort_by(.updated_at)
-        | map(del(.updated_at))
         | .[] ]' >&3
 fi
