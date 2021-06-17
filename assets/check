@@ -147,9 +147,9 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         exit
     fi
 
-    # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date, wrap as array for concourse
+    # take the list of PRs | filter out containing "wip" in title | sort by update-date of commits | remove the date | pick latest PR, wrap as array for concourse
     jq -n --argjson prs "${prs}" '[ $prs
         | map(select(if .title | test("wip"; "i") then false else true end))
         | sort_by(.updated_at)
-        | map(del(.updated_at))' >&3
+        | map(del(.updated_at)) ]' >&3
 fi
