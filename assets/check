@@ -148,13 +148,16 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     if [[ -n "${paths}" ]]; then
         ids=""
         paths=$(jq -r 'join("|^")' <<< $paths)
+        diffstat_response=$(mktemp /tmp/diffstat_response.XXXXXX)
 
         for id in $(jq -r '.[].id' <<< "$prs"); do
             uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests/${id}/diffstat"
 
-            changes=$(curl -sSL --fail "${authentication[@]}" "${uri}" \
-                 | jq --arg paths ^$paths '.values | map(.new.path) | map(select(test($paths))) | any')
-            [[ $changes != false ]] && ids+="${id},"
+            curl -sSL --fail "${authentication[@]}" "${uri}" >"${diffstat_response}"
+
+            new_changes=$(jq --arg paths ^$paths '[.values[] | select(.new.path != null)] | map(.new.path) | map(select(test($paths))) | any' "${diffstat_response}")
+            old_changes=$(jq --arg paths ^$paths '[.values[] | select(.old.path != null)] | map(.old.path) | map(select(test($paths))) | any' "${diffstat_response}")
+            [[ $new_changes != false || $old_changes != false ]] && ids+="${id},"
         done
 
         if [[ -n ${ids} ]]; then
