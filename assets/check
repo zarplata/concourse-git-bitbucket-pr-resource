@@ -14,6 +14,7 @@ bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < ${payload})
 base_url=$(jq -r '.source.base_url // ""' < ${payload})
 username=$(jq -r '.source.username // ""' < ${payload})
 password=$(jq -r '.source.password // ""' < ${payload})
+access_token=$(jq -r '.source.access_token // ""' < ${payload})
 project=$(jq -r '.source.project // ""' < ${payload})
 repository=$(jq -r '.source.repository // ""' < ${payload})
 limit=$(jq -r '.source.limit // 100' < ${payload})
@@ -45,7 +46,11 @@ fi
 if [[ "$bitbucket_type" == "server" ]]; then
     request() {
         uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}${1}"
-        curl -sSL --fail -u "${username}:${password}" "$uri"
+        if [[ -n "${access_token}" ]]; then
+            curl -sSL --fail -H "Authorization: Bearer ${access_token}" "$uri"
+        else
+            curl -sSL --fail -u "${username}:${password}" "$uri"
+        fi
     }
 
     if [[ -n "${source_branch}" ]]; then

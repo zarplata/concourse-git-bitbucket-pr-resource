@@ -16,6 +16,7 @@ bitbucket_type=$(jq -r '.source.bitbucket_type // "server"' < "${payload}")
 base_url=$(jq -r '.source.base_url // ""' < "${payload}")
 username=$(jq -r '.source.username // ""' < "${payload}")
 password=$(jq -r '.source.password // ""' < "${payload}")
+access_token=$(jq -r '.source.access_token // ""' < ${payload})
 project=$(jq -r '.source.project // ""' < "${payload}")
 repository=$(jq -r '.source.repository // ""' < "${payload}")
 path=$(jq -r '.params.repository // .source.dir // .source.repository // ""' < "${payload}")
@@ -69,7 +70,11 @@ change_build_status() {
         }'
     )
 
-    authentication=(-u ${username}:${password})
+    if [[ -n "${access_token}" ]]; then
+        authentication=(-H "Authorization: Bearer ${access_token}")
+    else
+        authentication=(-u ${username}:${password})
+    fi
     if [[ -n "${oauth_id}" ]]; then
         oauth_response=$(mktemp /tmp/resource.XXXXXX)
         uri="${base_url}/site/oauth2/access_token"
