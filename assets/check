@@ -86,9 +86,7 @@ if [[ "$bitbucket_type" == "server" ]]; then
         paths=$(jq -r 'join("|^")' <<< $paths)
 
         for id in $(jq -r '.[].id' <<< "$prs"); do
-            uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}/pull-requests/${id}/changes?limit=${changes_limit}"
-
-            changes=$(curl -sSL --fail -u "${username}:${password}" "${uri}" \
+            changes=$(request "/pull-requests/${id}/changes?limit=${changes_limit}" \
                 | jq --arg paths ^$paths '.values | map(.path.toString) | map(select(test($paths))) | any')
             [[ $changes != false ]] && ids+="${id},"
         done
