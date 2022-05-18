@@ -22,6 +22,7 @@ repository="$(jq -r '.source.repository // ""' < "${payload}")"
 git="$(jq -r '.source.git // ""' < "${payload}")"
 oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
 oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
+skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // "false"' < ${payload})
 # params
 skip_download="$(jq -r '.params.skip_download // false' < "${payload}")"
 fetch_upstream="$(jq -r '.params.fetch_upstream // false' < "${payload}")"
@@ -65,8 +66,15 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests/${version_id}"
 fi
 
+# Check for SSL verification skipping
+if [[ "$skip_ssl_verification" == "true" ]]; then
+    ssl_skip="--insecure"
+else
+    ssl_skip=""
+fi
+
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -sL --fail "${authentication[@]}" "${uri}" > "${pr}"
+curl -sL "${ssl_skip}" --fail "${authentication[@]}" "${uri}" > "${pr}"
 
 git_payload=$(echo "${git}" | jq --argjson version "${version}" --argjson params "${git_params}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}} + {params: $params}

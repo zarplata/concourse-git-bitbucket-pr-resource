@@ -25,6 +25,7 @@ direction=$(jq -r '.source.direction // ""' < ${payload})
 oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
 oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
 exclude_title=$(jq -r '.source.exclude_title // "false"' < ${payload})
+skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // "false"' < ${payload})
 
 # version
 version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
@@ -42,14 +43,21 @@ if [[ -z "${repository}" ]]; then
     exit 1
 fi
 
+# Check for SSL verification skipping
+if [[ "$skip_ssl_verification" == "true" ]]; then
+    ssl_skip="--insecure"
+else
+    ssl_skip=""
+fi
+
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
 if [[ "$bitbucket_type" == "server" ]]; then
     request() {
         uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}${1}"
         if [[ -n "${access_token}" ]]; then
-            curl -sSL --fail -H "Authorization: Bearer ${access_token}" "$uri"
+            curl -sSL "${ssl_skip}" --fail -H "Authorization: Bearer ${access_token}" "$uri"
         else
-            curl -sSL --fail -u "${username}:${password}" "$uri"
+            curl -sSL "${ssl_skip}" --fail -u "${username}:${password}" "$uri"
         fi
     }
 
@@ -121,7 +129,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)
-    curl -sSL --fail "${authentication[@]}" $uri | jq -r ".values[0:$limit]" > "${response}"
+    curl -sSL "${ssl_skip}" --fail "${authentication[@]}" $uri | jq -r ".values[0:$limit]" > "${response}"
     if [[ "${direction}" == "incoming" ]]; then
         branch_object="destination"
     else
@@ -156,7 +164,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         for id in $(jq -r '.[].id' <<< "$prs"); do
             uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests/${id}/diffstat"
 
-            curl -sSL --fail "${authentication[@]}" "${uri}" >"${diffstat_response}"
+            curl -sSL "${ssl_skip}" --fail "${authentication[@]}" "${uri}" >"${diffstat_response}"
 
             new_changes=$(jq --arg paths ^$paths '[.values[] | select(.new.path != null)] | map(.new.path) | map(select(test($paths))) | any' "${diffstat_response}")
             old_changes=$(jq --arg paths ^$paths '[.values[] | select(.old.path != null)] | map(.old.path) | map(select(test($paths))) | any' "${diffstat_response}")
