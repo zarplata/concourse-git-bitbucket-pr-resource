@@ -26,6 +26,7 @@ oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
 oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
 exclude_title=$(jq -r '.source.exclude_title // "false"' < ${payload})
 skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // "false"' < ${payload})
+ssl_cacert=$(jq -r '.source.ssl_cacert // ""' < ${payload})
 
 # version
 version_updated_at=$(jq -r '.version.updated_at // 0' < ${payload})
@@ -45,9 +46,16 @@ fi
 
 # Check for SSL verification skipping
 if [[ "$skip_ssl_verification" == "true" ]]; then
-    ssl_skip="--insecure"
+    ssl_flag="--insecure"
 else
-    ssl_skip=""
+    ssl_flag=""
+fi
+
+# Check for SSL CA Cert
+if [[ -z "$ssl_cacert" ]]; then
+    ssl_flag="--cacert ${ssl_cacert}"
+else
+    ssl_flag=""
 fi
 
 # Bitbucket Cloud and (self-hosted) Server APIs are a bit different
@@ -55,9 +63,9 @@ if [[ "$bitbucket_type" == "server" ]]; then
     request() {
         uri="${base_url}/rest/api/1.0/projects/${project}/repos/${repository}${1}"
         if [[ -n "${access_token}" ]]; then
-            curl -sSL "${ssl_skip}" --fail -H "Authorization: Bearer ${access_token}" "$uri"
+            curl -sSL "${ssl_flag}" --fail -H "Authorization: Bearer ${access_token}" "$uri"
         else
-            curl -sSL "${ssl_skip}" --fail -u "${username}:${password}" "$uri"
+            curl -sSL "${ssl_flag}" --fail -u "${username}:${password}" "$uri"
         fi
     }
 
@@ -122,14 +130,14 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
     if [[ -n "${oauth_id}" ]]; then
         oauth_response=$(mktemp /tmp/resource.XXXXXX)
         uri="${base_url}/site/oauth2/access_token"
-        curl -XPOST -sSL --fail -u "${oauth_id}:${oauth_secret}" -d grant_type=client_credentials $uri | jq -r '.access_token' > "${oauth_response}"
+        curl -XPOST -sSL "${ssl_flag}" --fail -u "${oauth_id}:${oauth_secret}" -d grant_type=client_credentials $uri | jq -r '.access_token' > "${oauth_response}"
         authentication=(-H "Authorization: Bearer `cat $oauth_response`")
     fi
     uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests?limit=${limit}&state=OPEN"
 
     # write response to file as feeding it to jq from a variable doesnt work properly: JSON looses linefeed format in variable
     response=$(mktemp /tmp/resource.XXXXXX)
-    curl -sSL "${ssl_skip}" --fail "${authentication[@]}" $uri | jq -r ".values[0:$limit]" > "${response}"
+    curl -sSL "${ssl_flag}" --fail "${authentication[@]}" $uri | jq -r ".values[0:$limit]" > "${response}"
     if [[ "${direction}" == "incoming" ]]; then
         branch_object="destination"
     else
@@ -150,7 +158,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
 
         # get the commit date, which is when the PR last got updated code-wise.
         # the updated_on field in the PR also changes when comment added etc
-        date=$(curl -sL --fail "${authentication[@]}" $commit_url | jq -r '.date')
+        date=$(curl -sL --fail "${ssl_flag}" "${authentication[@]}" $commit_url | jq -r '.date')
 
         pr=$(jq -n --arg id "${id}" --arg title "${title}" --arg branch "${branch}" --arg commit "${commit}" --arg date "${date}" '[{id: $id, title: $title, branch: $branch, commit: $commit, updated_at: $date}]')
         prs=$(jq -n --argjson prs "${prs}" --argjson pr "${pr}"  '$prs + $pr')
@@ -164,7 +172,7 @@ elif [[ "$bitbucket_type" == "cloud" ]]; then
         for id in $(jq -r '.[].id' <<< "$prs"); do
             uri="${base_url}/2.0/repositories/${project}/${repository}/pullrequests/${id}/diffstat"
 
-            curl -sSL "${ssl_skip}" --fail "${authentication[@]}" "${uri}" >"${diffstat_response}"
+            curl -sSL "${ssl_flag}" --fail "${authentication[@]}" "${uri}" >"${diffstat_response}"
 
             new_changes=$(jq --arg paths ^$paths '[.values[] | select(.new.path != null)] | map(.new.path) | map(select(test($paths))) | any' "${diffstat_response}")
             old_changes=$(jq --arg paths ^$paths '[.values[] | select(.old.path != null)] | map(.old.path) | map(select(test($paths))) | any' "${diffstat_response}")
