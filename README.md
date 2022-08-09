@@ -45,6 +45,7 @@ Or:
 
 * `exclude_title`: *Optional*. prevent *check* from emitting new versions when only the pull request title changes, except when the string "WIP" is removed from the title.
 * `skip_ssl_verification`: *Optional*. Disable SSL verification on the Bitbucket API calls.
+* `ssl_cacert`: *Optional*. Custom CA certs to use to verify Bitbucket API calls.
 
 ### Example
 

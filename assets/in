@@ -23,6 +23,7 @@ git="$(jq -r '.source.git // ""' < "${payload}")"
 oauth_id=$(jq -r '.source.oauth_id // ""' < ${payload})
 oauth_secret=$(jq -r '.source.oauth_secret // ""' < ${payload})
 skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // "false"' < ${payload})
+ssl_cacert=$(jq -r '.source.ssl_cacert // ""' < ${payload})
 # params
 skip_download="$(jq -r '.params.skip_download // false' < "${payload}")"
 fetch_upstream="$(jq -r '.params.fetch_upstream // false' < "${payload}")"
@@ -68,13 +69,20 @@ fi
 
 # Check for SSL verification skipping
 if [[ "$skip_ssl_verification" == "true" ]]; then
-    ssl_skip="--insecure"
+    ssl_flag="--insecure"
 else
-    ssl_skip=""
+    ssl_flag=""
+fi
+
+# Check for SSL CA Cert
+if [[ -z "$ssl_cacert" ]]; then
+    ssl_flag="--cacert ${ssl_cacert}"
+else
+    ssl_flag=""
 fi
 
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -sL "${ssl_skip}" --fail "${authentication[@]}" "${uri}" > "${pr}"
+curl -sL "${ssl_flag}" --fail "${authentication[@]}" "${uri}" > "${pr}"
 
 git_payload=$(echo "${git}" | jq --argjson version "${version}" --argjson params "${git_params}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}} + {params: $params}
