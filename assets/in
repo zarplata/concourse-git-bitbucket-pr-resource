@@ -77,12 +77,10 @@ fi
 # Check for SSL CA Cert
 if [[ -z "$ssl_cacert" ]]; then
     ssl_flag="--cacert ${ssl_cacert}"
-else
-    ssl_flag=""
 fi
 
 pr=$(mktemp /tmp/resource.XXXXXX)
-curl -sL "${ssl_flag}" --fail "${authentication[@]}" "${uri}" > "${pr}"
+curl -sL ${ssl_flag} --fail "${authentication[@]}" "${uri}" > "${pr}"
 
 git_payload=$(echo "${git}" | jq --argjson version "${version}" --argjson params "${git_params}" '
     {source: (. * {branch: $version.branch})} + {version: {ref: $version.commit}} + {params: $params}
