@@ -5,4 +5,3 @@ RUN mv /opt/resource /opt/git-resource
 
 ADD assets/ /opt/resource/
 RUN chmod +x /opt/resource/*
-

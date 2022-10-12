@@ -15,5 +15,5 @@ if [ -z "${script}" ]; then
 fi
 
 docker build -t concourse-git-bitbucket-pr-resource:dev .
-docker run --rm -i -v "${PWD}/.tmp:/tmp/resource" concourse-git-bitbucket-pr-resource:dev \
+docker run --rm -i --platform linux/amd64 -v "${PWD}/.tmp:/tmp/resource" concourse-git-bitbucket-pr-resource:dev \
     bash "${BASH_OPTS:-+x}" "/opt/resource/${script}" "/tmp/resource" <<< "$(cat)"
